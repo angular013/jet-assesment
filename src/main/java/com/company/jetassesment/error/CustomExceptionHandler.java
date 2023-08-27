@@ -1,6 +1,7 @@
 package com.company.jetassesment.error;
 
 import com.company.jetassesment.exception.CustomValidationException;
+import com.company.jetassesment.exception.DuplicateEmailException;
 import com.company.jetassesment.exception.EmployeeNotFoundException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -31,5 +32,16 @@ public class CustomExceptionHandler {
                 ex.getMessage()
         );
         return ResponseEntity.badRequest().body(errorResponse);
+    }
+
+    @ExceptionHandler(DuplicateEmailException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateEmailException(DuplicateEmailException ex) {
+        ErrorResponse errorResponse = new ErrorResponse(
+                LocalDateTime.now(),
+                404,
+                "Not Found",
+                ex.getMessage()
+        );
+        return ResponseEntity.status(404).body(errorResponse);
     }
 }

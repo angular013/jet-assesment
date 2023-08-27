@@ -9,6 +9,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class DuplicateEmailException extends RuntimeException {
 
     public DuplicateEmailException(String email) {
-        super("Employee with email " + email + " not found");
+        super("Employee with email " + email + " already exists");
     }
 }

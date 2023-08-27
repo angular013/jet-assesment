@@ -10,6 +10,7 @@ import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -29,13 +30,19 @@ public class EmployeeService {
         if (!violations.isEmpty()) { throw new CustomValidationException("Employee request parameters validation failed");}
     }
 
-    public Employee createEmployee(Employee employee) {
-        employeeRequestValidator(employee);
+    private boolean isEmailUnique(String email) {
+        Employee existingEmployee = employeeRepository.findByEmail(email);
+        return existingEmployee == null; // Return true if email is unique, false if not
+    }
 
-        try { return employeeRepository.save(employee);}
-        catch (DataIntegrityViolationException ex) {
-           throw new DuplicateEmailException(employee.getEmail());
+    public ResponseEntity<Employee> createEmployee(Employee employee) {
+        employeeRequestValidator(employee);
+        if (!isEmailUnique(employee.getEmail())) {
+            throw new DuplicateEmailException(employee.getEmail());
         }
+
+        Employee savedEmployee = employeeRepository.save(employee);
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedEmployee);
     }
     public ResponseEntity<List<Employee>> getAllEmployees() {
         List<Employee> employees = employeeRepository.findAll();
