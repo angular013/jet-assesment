@@ -3,6 +3,7 @@ package com.company.jetassesment.service;
 import com.company.jetassesment.exception.CustomValidationException;
 import com.company.jetassesment.exception.DuplicateEmailException;
 import com.company.jetassesment.exception.EmployeeNotFoundException;
+import com.company.jetassesment.kafka.EmployeeEvent;
 import com.company.jetassesment.model.Employee;
 import com.company.jetassesment.repository.EmployeeRepository;
 import jakarta.validation.ConstraintViolation;
@@ -12,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -23,6 +25,8 @@ public class EmployeeService {
 
     @Autowired
     private EmployeeRepository employeeRepository;
+    @Autowired
+    private KafkaTemplate<String, EmployeeEvent> kafkaTemplate;
 
     private void employeeRequestValidator(Employee employee) {
         Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
@@ -42,6 +46,10 @@ public class EmployeeService {
         }
 
         Employee savedEmployee = employeeRepository.save(employee);
+        // Publish Kafka event
+        EmployeeEvent event = new EmployeeEvent("CREATE", employee);
+        kafkaTemplate.send("employee-events", event);
+
         return ResponseEntity.status(HttpStatus.CREATED).body(savedEmployee);
     }
     public ResponseEntity<List<Employee>> getAllEmployees() {
@@ -66,6 +74,10 @@ public class EmployeeService {
         existingEmployee.setBirthday(employee.getBirthday());
         existingEmployee.setHobbies(employee.getHobbies());
 
+        // Publish Kafka event
+        EmployeeEvent event = new EmployeeEvent("UPDATE", employee);
+        kafkaTemplate.send("employee-events", event);
+
         return employeeRepository.save(existingEmployee);
     }
 
@@ -73,6 +85,9 @@ public class EmployeeService {
         Employee employee = employeeRepository.findById(uuid)
                 .orElseThrow(() -> new EmployeeNotFoundException(uuid));
         employeeRepository.deleteById(uuid);
+        // Publish Kafka event
+        EmployeeEvent event = new EmployeeEvent("DELETE", employee);
+        kafkaTemplate.send("employee-events", event);
     }
 }
 
